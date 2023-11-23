@@ -6,10 +6,12 @@ const postsController = require("../controllers/posts");
 router.post('/', postsController.store);
 
 // GET /posts
-router.get('/', postsController.index);
+router.get('/all', postsController.index);
 
 // GET /posts/:slug
 router.get('/:slug', postsController.show);
+
+router.get('/', postsController.showByFilter);
 
 // PUT /posts/:slug
 router.put('/:slug', postsController.update);
