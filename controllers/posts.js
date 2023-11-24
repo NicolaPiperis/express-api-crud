@@ -1,13 +1,20 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
+const NotFound = require ("../exceptions/NotFound");
+const ValidationError = require("../exceptions/Validation");
 // libreria per automatizzare lo slug basandosi sul title
 const slugify = require("slugify");
 function generateSlug(title) {
     return slugify(title, { replacement: '-', lower: true });
   }
 
-async function store (req, res) {
+async function store (req, res, next) {
     const postData = req.body;
+
+    if(!postData.title) {
+      next(new ValidationError("Titolo obbligatorio, non trovato"));
+    }
+
     const slug = generateSlug(postData.title);
     const newPost = await prisma.post.create({
         data:{
@@ -18,6 +25,7 @@ async function store (req, res) {
             published: postData.published
         }
     })
+    
     return res.json(newPost);
 }
 
@@ -33,19 +41,34 @@ async function show (req, res) {
           slug: req.params.slug  
         }
     })
+    if(!dataBySlug) {
+      next(new NotFound("Post non trovato"));
+    };
     res.json(dataBySlug);
     
 }
 
 async function showByFilter (req, res) {
-    const publishedData = await prisma.post.findMany({
-        where: {
-            published: true
-        }
+    const filter = req.query.filter;
+    const queryfilters = {};
+
+    if(filter && filter.title) {
+      queryfilters.title = {
+        contains: filter.title
+      }
+    };
+    if(filter && filter.published) {
+      queryfilters.published = {
+        equals: filter.published === "true"
+      }
+    };
+    const Data = await prisma.post.findMany({
+        where: 
+            queryfilters
+        
     })
-    res.json(publishedData);
-    
-// COMPLETARE CON RICERCA SU FILTRO
+    res.json(Data);
+
 }
 
 async function update(req, res) {
